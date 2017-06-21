@@ -1,3 +1,8 @@
+//there is a bug in the command `avmlog -detect_errors -only_msg -hide_sql "/users/slawson/Documents/scale.log" | sort | uniq -c`
+//it eliminates the first letter of the message
+//eg. in something like  ault: undefined method `directory_name' for #<Nokogiri::XML::Element:***> in #<Thread:***>
+//the leading f in 'fault:' is missing
+
 package main
 
 import (
@@ -72,11 +77,13 @@ func main() {
 	full_flag       := flag.Bool("full", false, "Show the full request/job for each found line")
 	neat_flag       := flag.Bool("neat", false, "Hide clutter - equivalent to -hide_jobs -hide_sql -hide_ntlm")
 	detect_errors   := flag.Bool("detect_errors", false, "Detect lines containing known error messages")
-	after_str       := flag.String("after", "", "Show logs after this time (YYYY-MM-DD HH:II::SS")
+	after_str       := flag.String("after", "", "Show logs after this time (YYYY-MM-DD HH:II::SS") //missing closing )
 	find_str        := flag.String("find", "", "Find lines matching this regexp")
 	hide_str        := flag.String("hide", "", "Hide lines matching this regexp")
+	test_flag		:= flag.Bool("test_flag", false, "This is a test_flag to test things out")
 
 	flag.Parse()
+
 	args := flag.Args()
 
 	time_after, err := time.Parse(TIME_LAYOUT, fmt.Sprintf("[%s UTC]", *after_str))
@@ -94,6 +101,7 @@ func main() {
 	}
 
 	if len(args) < 1 {
+		msg("---------- error condition ------------")
 		usage()
 		os.Exit(2)
 	}
@@ -104,12 +112,17 @@ func main() {
 		*hide_ntlm_flag = true
 	}
 
+	if *test_flag {
+		msg("-------- The test flag has been set ---------")
+	}
+
 	msg(fmt.Sprintf("Show full requests/jobs: %t", *full_flag))
 	msg(fmt.Sprintf("Show background job lines: %t", !*hide_jobs_flag))
 	msg(fmt.Sprintf("Show SQL lines: %t", !*hide_sql_flag))
 	msg(fmt.Sprintf("Show NTLM lines: %t", !*hide_ntlm_flag))
 	msg(fmt.Sprintf("Show DEBUG lines: %t", !*hide_debug_flag))
 	msg(fmt.Sprintf("Show lines after: %s", *after_str))
+	msg(fmt.Sprintf("Test flag set to: %t", *test_flag))
 
 	filename := args[0]
 	msg(fmt.Sprintf("Opening file: %s", filename))
@@ -127,7 +140,9 @@ func main() {
 	var reports = map[string]*request_report{};
 
 	if ( *detect_errors ) {
+		msg("----------------- detect error set to true -----------------")
 		*find_str = "( ERROR | Exception | undefined | Failed | NilClass | Unable | failed )";
+		msg(fmt.Sprintf("---------- the string here is: %s", *find_str))
 	}
 
 	find_regexp, err := regexp.Compile(*find_str)
